@@ -44,29 +44,205 @@ It's what will be used in the next step of this tutorial.
 
   - In the Container software library tile, verify your entitlement on the View library page, and then go to *Get entitlement key* to retrieve the key.
 
-### b. Create a secret by running a docker create secret command.
+### b. Create a docker secret file 
 
-```console
-docker secret create dockerhubAccessToken hyc.json
+Create a `token.json` file with that format.
+```json
+{
+    "username":"cp",
+    "password":"<YOUR_ENTITLED_API_KEY"
+}
 ```
 
-where:
-* <API_KEY_GENERATED> is the entitlement key from the previous step. Make sure you enclose the key in double-quotes.
-* <USER_EMAIL> is the email address associated with your IBMid.
+### b. Create a secret by running a docker create secret command.
 
-> Note: The `cp.icr.io` value for the docker-server parameter is the only registry domain name that contains the images. You must set the docker-username to `cp` to use an entitlement key as docker-password.
+You can then create a secret from this file using `docker secret`:
 
-The my-odm-docker-registry secret name is already used for the `image.pullSecrets` parameter when you run a helm install of your containers. The `image.repository` parameter is also set by default to `cp.icr.io/cp/cp4a/odm`.
+```console
+$ docker secret create ICRAccessToken token.json
+arn:aws:secretsmanager:eu-west-3:675801125365:secret:ICRAccessToken-XXXX
+```
+Once created, you can use this ARN in your Compose file using `x-aws-pull_credentials` custom extension with the Docker image URI for your service.
 
+### c. Create a .env file
+With the ARN generated previously create a .env file the ICRPULLSECRET variable.
+```console
+echo "ICRPULLSECRET=arn:aws:secretsmanager:eu-west-3:675801125365:secret:ICRAccessToken-XXXX" > .env
+```
 ## Run ODM container in ECS
 
-### Use ECS Context
+### Create docker-compose file
+```yaml
+services:
+  dbserver:
+    image: cp.icr.io/cp/cp4a/odm/dbserver:8.11.0.1-amd64
+    x-aws-pull_credentials: "${ICRPULLSECRET}" 
+    user: "26:26"
+    ports:
+    - 5432:5432
+    environment:
+      - POSTGRESQL_USER=odmusr
+      - POSTGRESQL_PASSWORD=odmpwd
+      - POSTGRESQL_DB=odmdb
+      - SAMPLE=true
+      # Should be removed for postgres UBI RHEL Based image.
+#      - PGUSER=odmusr
+      - PGDATA=/var/lib/postgresql/data
+#      - SAMPLE=true
+# Uncomment this line to persist your data. Note that on OSX you need to share this
+# current directory in the Preference menu -> File Sharing menu.
+#    volumes:
+#      - ./pgdata:/pgdata
+
+
+  odm-decisionserverconsole:
+    image: cp.icr.io/cp/cp4a/odm/odm-decisionserverconsole:8.11.0.1-amd64
+    depends_on:
+    - dbserver
+    ports:
+    - 9853
+    environment:
+      - USERS_PASSWORD=odmAdmin
+      - HTTPS_PORT=9853
+    x-aws-pull_credentials:  "${ICRPULLSECRET}" 
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+
+  odm-decisionrunner:
+    image: cp.icr.io/cp/cp4a/odm/odm-decisionrunner:8.11.0.1-amd64
+    depends_on:
+    - dbserver
+    - odm-decisionserverconsole
+    environment:
+      - HTTPS_PORT=9753
+    x-aws-pull_credentials: "${ICRPULLSECRET}" 
+    ports:
+    - 9753
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  odm-decisionserverruntime:
+    image: cp.icr.io/cp/cp4a/odm/odm-decisionserverruntime:8.11.0.1-amd64
+    environment:
+      - DECISIONSERVERCONSOLE_NAME=odm-decisionserverconsole
+      - HTTPS_PORT=9953
+    x-aws-pull_credentials: "${ICRPULLSECRET}" 
+    depends_on:
+    - dbserver
+    - odm-decisionserverconsole
+    ports:
+    - 9953
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  odm-decisioncenter:
+    image: cp.icr.io/cp/cp4a/odm/odm-decisioncenter:8.11.0.1-amd64
+    depends_on:
+    - dbserver
+    environment:
+    - DECISIONSERVERCONSOLE_PORT=9853
+    - DECISIONRUNNER_PORT=9753
+    - HTTPS_PORT=9653
+    x-aws-pull_credentials: "${ICRPULLSECRET}" 
+    ports:
+    - 9653
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+```
+Save this content in a `docker-compose.yaml` file.
+
+### Switch your docker environment to the ECS Context
 - Ensure you are using your ECS context. You can do this either by specifying
 the `--context myecscontext` flag with your command, or by setting the
-current context using the command `docker context use myecscontext`.
-### 
+current context using the command 
+```console
+docker context use myecscontext
+```
 
-## View application logs
+> Note if you want to restore your initial docker environment `docker context use default`
+
+### Run the ODM on ECS topology
+```console
+docker compose up
+
+[+] Running 31/33
+ ⠴ ecs                                            CreateInProgress User Initiated                                                                                                                                                                                       75.5s
+ ⠿ DefaultNetwork                                 CreateComplete                                                                                                                                                                                                         6.0s
+ ⠿ DbserverTCP5432TargetGroup                     CreateComplete                                                                                                                                                                                                         2.0s
+ ⠿ CloudMap                                       CreateComplete                                                                                                                                                                                                        46.0s
+ ⠿ Cluster                                        CreateComplete                                                                                                                                                                                                         5.0s
+ ⠿ OdmdecisioncenterTCP9653TargetGroup            CreateComplete                                                                                                                                                                                                         1.0s
+ ⠿ OdmdecisioncenterTaskExecutionRole             CreateComplete                                                                                                                                                                                                        26.0s
+ ⠿ OdmdecisionrunnerTaskExecutionRole             CreateComplete                                                                                                                                                                                                        23.0s
+ ⠿ LogGroup                                       CreateComplete                                                                                                                                                                                                         2.0s
+ ⠿ OdmdecisionserverconsoleTCP9853TargetGroup     CreateComplete                                                                                                                                                                                                         1.0s
+ ⠿ OdmdecisionserverconsoleTaskExecutionRole      CreateComplete                                                                                                                                                                                                        24.0s
+ ⠴ LoadBalancer                                   CreateInProgress Resource creation Initiated                                                                                                                                                                          69.5s
+ ⠿ EcsmycertSecret                                CreateComplete                                                                                                                                                                                                         2.0s
+ ⠿ OdmdecisionrunnerTCP9753TargetGroup            CreateComplete                                                                                                                                                                                                         1.0s
+ ⠿ OdmdecisionserverruntimeTCP9953TargetGroup     CreateComplete                                                                                                                                                                                                         1.0s
+ ⠿ DbserverTaskExecutionRole                      CreateComplete                                                                                                                                                                                                        24.0s
+ ⠿ OdmdecisionserverruntimeTaskExecutionRole      CreateComplete                                                                                                                                                                                                        24.0s
+ ⠿ Default9653Ingress                             CreateComplete                                                                                                                                                                                                         1.0s
+ ⠿ Default9953Ingress                             CreateComplete                                                                                                                                                                                                         1.0s
+ ⠿ Default5432Ingress                             CreateComplete                                                                                                                                                                                                         1.0s
+ ⠿ DefaultNetworkIngress                          CreateComplete                                                                                                                                                                                                         1.0s
+ ⠿ Default9853Ingress                             CreateComplete                                                                                                                                                                                                         1.0s
+ ⠿ Default9753Ingress                             CreateComplete                                                                                                                                                                                                         1.0s
+ ⠿ OdmdecisionrunnerTaskDefinition                CreateComplete                                                                                                                                                                                                         2.0s
+ ⠿ OdmdecisionserverconsoleTaskDefinition         CreateComplete                                                                                                                                                                                                         3.0s
+ ⠿ DbserverTaskDefinition                         CreateComplete                                                                                                                                                                                                         3.0s
+ ⠿ OdmdecisioncenterTaskDefinition                CreateComplete                                                                                                                                                                                                         4.0s
+ ⠿ OdmdecisionserverruntimeTaskDefinition         CreateComplete                                                                                                                                                                                                         4.0s
+ ⠿ OdmdecisioncenterServiceDiscoveryEntry         CreateComplete                                                                                                                                                                                                         1.0s
+ ⠿ OdmdecisionserverruntimeServiceDiscoveryEntry  CreateComplete                                                                                                                                                                                                         2.0s
+ ⠿ DbserverServiceDiscoveryEntry                  CreateComplete                                                                                                                                                                                                         5.0s
+ ⠿ OdmdecisionserverconsoleServiceDiscoveryEntry  CreateComplete                                                                                                                                                                                                         2.0s
+ ⠿ OdmdecisionrunnerServiceDiscoveryEntry         CreateComplete
+```
+
+
+After a couple of minutes your ODM containers topology should be avalaible.
+
+You can check your container is running by using 
+```
+docker compose ps
+
+NAME                                        COMMAND             SERVICE                     STATUS              PORTS
+task/ecs/50c5ec5d176b4c96b5a62dc03d8b8bf7   ""                  odm-decisionrunner          Activating          ecs-LoadBal-QMPILXMWO6F3-1d82c8ee22304c71.elb.eu-west-3.amazonaws.com:9753:9753->9753/tcp
+task/ecs/8cb6f85ef9814055ae8308b9c7dc0f2b   ""                  odm-decisionserverconsole   Running             ecs-LoadBal-QMPILXMWO6F3-1d82c8ee22304c71.elb.eu-west-3.amazonaws.com:9853:9853->9853/tcp
+task/ecs/93789440198b4b3eab4941273ae7905c   ""                  odm-decisionserverruntime   Pending             ecs-LoadBal-QMPILXMWO6F3-1d82c8ee22304c71.elb.eu-west-3.amazonaws.com:9953:9953->9953/tcp
+task/ecs/cf749aa0d2a74966a22e377e3685daef   ""                  dbserver                    Running             ecs-LoadBal-QMPILXMWO6F3-1d82c8ee22304c71.elb.eu-west-3.amazonaws.com:5432:5432->5432/tcp
+task/ecs/ebc1606437034c65a479f7dae101618a   ""                  odm-decisioncenter          Running             ecs-LoadBal-QMPILXMWO6F3-1d82c8ee22304c71.elb.eu-west-3.amazonaws.com:9653:9653->9653/tcp
+```
+When the status is Running you can access the containers by using the `Ports` urls.
+
+### View application logs
 
 The Docker Compose CLI configures AWS CloudWatch Logs service for your
 containers.
