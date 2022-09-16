@@ -1,3 +1,6 @@
+![image](https://user-images.githubusercontent.com/24404215/190668668-35eba1e5-5edc-4ed8-98a1-2c90b27b1c4a.png)
+
+
 # 1. Pre-requisite 
 
 To deploy Docker containers on ECS, you must meet the following requirements:
