@@ -1,0 +1,109 @@
+services:
+  dbserver:
+    image: cp.icr.io/cp/cp4a/odm/dbserver:8.11.0.1-amd64
+    x-aws-pull_credentials: "${ICRPULLSECRET}" 
+    user: "26:26"
+    ports:
+    - 5432:5432
+    environment:
+      - POSTGRESQL_USER=odmusr
+      - POSTGRESQL_PASSWORD=odmpwd
+      - POSTGRESQL_DB=odmdb
+      - SAMPLE=true
+      # Should be removed for postgres UBI RHEL Based image.
+#      - PGUSER=odmusr
+      - PGDATA=/var/lib/postgresql/data
+#      - SAMPLE=true
+# Uncomment this line to persist your data. Note that on OSX you need to share this
+# current directory in the Preference menu -> File Sharing menu.
+#    volumes:
+#      - ./pgdata:/pgdata
+
+
+  odm-decisionserverconsole:
+    image: cp.icr.io/cp/cp4a/odm/odm-decisionserverconsole:8.11.0.1-amd64
+    depends_on:
+    - dbserver
+    ports:
+    - 9853
+    environment:
+      - USERS_PASSWORD=odmAdmin
+      - HTTPS_PORT=9853
+    x-aws-pull_credentials:  "${ICRPULLSECRET}" 
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+
+  odm-decisionrunner:
+    image: cp.icr.io/cp/cp4a/odm/odm-decisionrunner:8.11.0.1-amd64
+    depends_on:
+    - dbserver
+    - odm-decisionserverconsole
+    environment:
+      - HTTPS_PORT=9753
+    x-aws-pull_credentials: "${ICRPULLSECRET}" 
+    ports:
+    - 9753
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+
+  odm-decisionserverruntime:
+    image: cp.icr.io/cp/cp4a/odm/odm-decisionserverruntime:8.11.0.1-amd64
+    environment:
+      - DECISIONSERVERCONSOLE_NAME=odm-decisionserverconsole
+      - HTTPS_PORT=9953
+    x-aws-pull_credentials: "${ICRPULLSECRET}" 
+    depends_on:
+    - dbserver
+    - odm-decisionserverconsole
+    ports:
+    - 9953
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    secrets:
+      - source: mycert
+        target: /config/security/trusted-cert-volume/mycompany.crt
+        mode: 0444
+
+  odm-decisioncenter:
+    image: cp.icr.io/cp/cp4a/odm/odm-decisioncenter:8.11.0.1-amd64
+    depends_on:
+    - dbserver
+    environment:
+    - DECISIONSERVERCONSOLE_PORT=9853
+    - DECISIONRUNNER_PORT=9753
+    - HTTPS_PORT=9653
+    x-aws-pull_credentials: "${ICRPULLSECRET}" 
+    ports:
+    - 9653
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
+secrets:
+  mycert:
+    file: ./mycompany.crt
