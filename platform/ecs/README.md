@@ -271,7 +271,14 @@ You can also pass `awslogs`
 parameters to your container as standard
 Compose file `logging.driver_opts` elements. See [AWS documentation](https://docs.amazonaws.cn/en_us/AmazonECS/latest/developerguide/using_awslogs.html){:target="_blank" rel="noopener" class="_"} for details on available log driver options.
 
-# Useful links
+## Useful links
    * Docker documentation : https://docs.docker.com/cloud/ecs-integration/
    *  If you have trouble to delete your stack read this documentation
 https://aws.amazon.com/fr/premiumsupport/knowledge-center/cloudformation-stack-stuck-progress/
+
+## TODO
+- [ ] Bench 
+- [ ] Document customization
+- [ ] Document Replace DBServer by an RDS Database
+- [ ] Add an architecture diagram
+- [ ] Give a customization with an OIDC Provider
