@@ -18,12 +18,17 @@ services:
 # current directory in the Preference menu -> File Sharing menu.
 #    volumes:
 #      - ./pgdata:/pgdata
-
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   odm-decisionserverconsole:
     image: cp.icr.io/cp/cp4a/odm/odm-decisionserverconsole:8.11.0.1-amd64
     depends_on:
-    - dbserver
+      dbserver:
+        condition: service_healthy
     ports:
     - 9853
     environment:
@@ -38,13 +43,20 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
-
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost:9853/res/login.jsf"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 50s
 
   odm-decisionrunner:
     image: cp.icr.io/cp/cp4a/odm/odm-decisionrunner:8.11.0.1-amd64
     depends_on:
-    - dbserver
-    - odm-decisionserverconsole
+      dbserver:
+        condition: service_healthy
+      odm-decisionserverconsole:
+        condition: service_healthy
     environment:
       - HTTPS_PORT=9753
     x-aws-pull_credentials: "${ICRPULLSECRET}" 
@@ -58,6 +70,12 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost:9753/DecisionRunner"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 50s
 
 
   odm-decisionserverruntime:
@@ -67,8 +85,10 @@ services:
       - HTTPS_PORT=9953
     x-aws-pull_credentials: "${ICRPULLSECRET}" 
     depends_on:
-    - dbserver
-    - odm-decisionserverconsole
+      dbserver:
+        condition: service_healthy
+      odm-decisionserverconsole:
+        condition: service_healthy
     ports:
     - 9953
     deploy:
@@ -83,27 +103,41 @@ services:
       - source: mycert
         target: /config/security/trusted-cert-volume/mycompany.crt
         mode: 0444
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost:9953/DecisionService"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 50s
 
   odm-decisioncenter:
-    image: cp.icr.io/cp/cp4a/odm/odm-decisioncenter:8.11.0.1-amd64
-    depends_on:
-    - dbserver
-    environment:
-    - DECISIONSERVERCONSOLE_PORT=9853
-    - DECISIONRUNNER_PORT=9753
-    - HTTPS_PORT=9653
-    x-aws-pull_credentials: "${ICRPULLSECRET}" 
-    ports:
-    - 9653
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 4G
-        reservations:
-          cpus: '0.5'
-          memory: 1G
-
+      image: cp.icr.io/cp/cp4a/odm/odm-decisioncenter:8.11.0.1-amd64
+      depends_on:
+        dbserver:
+          condition: service_healthy
+      environment:
+      - DECISIONSERVERCONSOLE_PORT=9853
+      - DECISIONRUNNER_PORT=9753
+      - HTTPS_PORT=9653
+      - DECISION_MODEL_DISABLED=true
+      x-aws-pull_credentials: "${ICRPULLSECRET}" 
+      ports:
+      - 9653
+      deploy:
+        resources:
+          limits:
+            cpus: '1'
+            memory: 4G
+          reservations:
+            cpus: '0.5'
+            memory: 1G
+      healthcheck:
+        test: ["CMD", "curl", "-k", "-f", "https://localhost:9653/decisioncenter/healthCheck?dontCheckDecisionModel=true"]
+        interval: 30s
+        timeout: 5s
+        retries: 5
+        start_period: 50s
+  
 secrets:
   mycert:
     file: ./mycompany.crt

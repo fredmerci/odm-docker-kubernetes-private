@@ -1,0 +1,49 @@
+version: '3'
+services:
+
+  odm-decisioncenter:
+    volumes:
+    - certs-data:/config/security/trusted-cert-volume
+    - config-auth-data:/config/auth
+    depends_on:
+      dbserver:
+        condition: service_healthy
+      copyconfigfile:
+        condition: service_started
+#  odm-decisionserverruntime:
+
+#  odm-decisionrunner:
+
+#  odm-decisionserverconsole:
+
+
+  copyconfigfile:
+    image: hyc-odm-docker.artifactory.swg-devops.com/odm-decisioncenter:8.11.0.1-amd64
+    command:  ["sh","-c","ls -la /run/secrets/ && cp /run/secrets/azure_ad.crt /trusted-cert-volume && cp /run/secrets/OdmOidcProviders.json /run/secrets/openIdWebSecurity.xml /run/secrets/webSecurity.xml /run/secrets/openIdParameters.properties /auth/ && while :; do sleep 60; done  "]
+    user: "0:0"
+    x-aws-pull_credentials: "arn:aws:secretsmanager:eu-west-3:675801125365:secret:HycToken-vcdGCG"
+    volumes:
+      - certs-data:/trusted-cert-volume
+      - config-auth-data:/auth
+    secrets:
+      - azure_ad.crt
+      - OdmOidcProviders.json
+      - openIdWebSecurity.xml
+      - openIdParameters.properties
+      - webSecurity.xml
+
+volumes:
+  certs-data:
+  config-auth-data:
+
+secrets:
+  OdmOidcProviders.json:
+    file: ./azure_ad/OdmOidcProviders.json
+  openIdWebSecurity.xml:
+    file: ./azure_ad/openIdWebSecurity.xml
+  openIdParameters.properties:
+    file: ./azure_ad/openIdParameters.properties
+  webSecurity.xml:
+    file: ./azure_ad/webSecurity.xml
+  azure_ad.crt:
+    file: ./azure_ad/azure_ad.crt
