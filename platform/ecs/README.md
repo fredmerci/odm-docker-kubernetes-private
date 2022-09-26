@@ -1,5 +1,5 @@
 
-![ODM-ECS drawio](https://user-images.githubusercontent.com/24404215/192227556-67ac2325-61a5-40eb-8bbf-c17b8eff2f1d.png)
+![ODM-ECS drawio](../../imagees/ecs/ODM-ECS.png)
 
 
 # 1. Pre-requisite 
