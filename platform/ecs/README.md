@@ -1,5 +1,5 @@
 
-![ODM-ECS drawio](../../imagees/ecs/ODM-ECS.png)
+![ODM-ECS drawio](../../images/ecs/ODM-ECS.png)
 
 
 # 1. Pre-requisite 
