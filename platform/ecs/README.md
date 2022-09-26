@@ -1,4 +1,5 @@
-![image](https://user-images.githubusercontent.com/24404215/190668668-35eba1e5-5edc-4ed8-98a1-2c90b27b1c4a.png)
+
+![ODM-ECS drawio](https://user-images.githubusercontent.com/24404215/192227556-67ac2325-61a5-40eb-8bbf-c17b8eff2f1d.png)
 
 
 # 1. Pre-requisite 
