@@ -284,5 +284,5 @@ https://aws.amazon.com/fr/premiumsupport/knowledge-center/cloudformation-stack-s
 - [ ] Bench 
 - [ ] Document customization
 - [ ] Document Replace DBServer by an RDS Database
-- [ ] Add an architecture diagram
+- [x] Add an architecture diagram
 - [ ] Give a customization with an OIDC Provider
