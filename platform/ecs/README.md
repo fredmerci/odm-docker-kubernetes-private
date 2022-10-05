@@ -73,6 +73,26 @@ With the ARN generated previously create a .env file the ICRPULLSECRET variable.
 ```console
 echo "ICRPULLSECRET=arn:aws:secretsmanager:eu-west-3:675801125365:secret:ICRAccessToken-XXXX" > .env
 ```
+
+## Create RDS Database
+```
+aws rds create-db-instance \
+  --db-instance-identifier "odm-rds" \
+  --db-name "odmdb" \
+  --engine 'postgres' \
+  --engine-version '13' \
+  --auto-minor-version-upgrade \
+  --allocated-storage 50 \
+  --max-allocated-storage 100 \
+  --db-instance-class 'db.t3.large' \
+  --master-username "odmusername" \
+  --master-user-password "odmpassword" \
+  --port "5432" \
+  --publicly-accessible \
+  --storage-encrypted \
+  --tags Key=project,Value=odm
+```
+
 ## Run ODM container in ECS
 
 ### Create docker-compose file
@@ -281,8 +301,8 @@ Compose file `logging.driver_opts` elements. See [AWS documentation](https://doc
 https://aws.amazon.com/fr/premiumsupport/knowledge-center/cloudformation-stack-stuck-progress/
 
 ## TODO
-- [ ] Bench 
+- [ x ] Bench 
 - [ ] Document customization
 - [ ] Document Replace DBServer by an RDS Database
-- [ ] Add an architecture diagram
+- [ ] Add an architecture diagram 
 - [ ] Give a customization with an OIDC Provider
