@@ -212,43 +212,15 @@ docker context use myecscontext
 
 ### Run the ODM on ECS topology
 ```console
-docker compose up
-
-[+] Running 31/33
- ⠴ ecs                                            CreateInProgress User Initiated                                                                                                                                                                                       75.5s
- ⠿ DefaultNetwork                                 CreateComplete                                                                                                                                                                                                         6.0s
- ⠿ DbserverTCP5432TargetGroup                     CreateComplete                                                                                                                                                                                                         2.0s
- ⠿ CloudMap                                       CreateComplete                                                                                                                                                                                                        46.0s
- ⠿ Cluster                                        CreateComplete                                                                                                                                                                                                         5.0s
- ⠿ OdmdecisioncenterTCP9653TargetGroup            CreateComplete                                                                                                                                                                                                         1.0s
- ⠿ OdmdecisioncenterTaskExecutionRole             CreateComplete                                                                                                                                                                                                        26.0s
- ⠿ OdmdecisionrunnerTaskExecutionRole             CreateComplete                                                                                                                                                                                                        23.0s
- ⠿ LogGroup                                       CreateComplete                                                                                                                                                                                                         2.0s
- ⠿ OdmdecisionserverconsoleTCP9853TargetGroup     CreateComplete                                                                                                                                                                                                         1.0s
- ⠿ OdmdecisionserverconsoleTaskExecutionRole      CreateComplete                                                                                                                                                                                                        24.0s
- ⠴ LoadBalancer                                   CreateInProgress Resource creation Initiated                                                                                                                                                                          69.5s
- ⠿ EcsmycertSecret                                CreateComplete                                                                                                                                                                                                         2.0s
- ⠿ OdmdecisionrunnerTCP9753TargetGroup            CreateComplete                                                                                                                                                                                                         1.0s
- ⠿ OdmdecisionserverruntimeTCP9953TargetGroup     CreateComplete                                                                                                                                                                                                         1.0s
- ⠿ DbserverTaskExecutionRole                      CreateComplete                                                                                                                                                                                                        24.0s
- ⠿ OdmdecisionserverruntimeTaskExecutionRole      CreateComplete                                                                                                                                                                                                        24.0s
- ⠿ Default9653Ingress                             CreateComplete                                                                                                                                                                                                         1.0s
- ⠿ Default9953Ingress                             CreateComplete                                                                                                                                                                                                         1.0s
- ⠿ Default5432Ingress                             CreateComplete                                                                                                                                                                                                         1.0s
- ⠿ DefaultNetworkIngress                          CreateComplete                                                                                                                                                                                                         1.0s
- ⠿ Default9853Ingress                             CreateComplete                                                                                                                                                                                                         1.0s
- ⠿ Default9753Ingress                             CreateComplete                                                                                                                                                                                                         1.0s
- ⠿ OdmdecisionrunnerTaskDefinition                CreateComplete                                                                                                                                                                                                         2.0s
- ⠿ OdmdecisionserverconsoleTaskDefinition         CreateComplete                                                                                                                                                                                                         3.0s
- ⠿ DbserverTaskDefinition                         CreateComplete                                                                                                                                                                                                         3.0s
- ⠿ OdmdecisioncenterTaskDefinition                CreateComplete                                                                                                                                                                                                         4.0s
- ⠿ OdmdecisionserverruntimeTaskDefinition         CreateComplete                                                                                                                                                                                                         4.0s
- ⠿ OdmdecisioncenterServiceDiscoveryEntry         CreateComplete                                                                                                                                                                                                         1.0s
- ⠿ OdmdecisionserverruntimeServiceDiscoveryEntry  CreateComplete                                                                                                                                                                                                         2.0s
- ⠿ DbserverServiceDiscoveryEntry                  CreateComplete                                                                                                                                                                                                         5.0s
- ⠿ OdmdecisionserverconsoleServiceDiscoveryEntry  CreateComplete                                                                                                                                                                                                         2.0s
- ⠿ OdmdecisionrunnerServiceDiscoveryEntry         CreateComplete
+# Generate Cloud formation template
+docker compose convert > deploy.yml
+# Add License Metering side car
+# Deploy the topology
+aws --region eu-south-1 cloudformation deploy --capabilities CAPABILITY_IAM \
+--stack-name odm-ecs \
+--template-file ./deploy.yml
 ```
+
 
 
 After a couple of minutes your ODM containers topology should be avalaible.
@@ -294,7 +266,11 @@ default behavior is to keep logs forever.
 You can also pass `awslogs`
 parameters to your container as standard
 Compose file `logging.driver_opts` elements. See [AWS documentation](https://docs.amazonaws.cn/en_us/AmazonECS/latest/developerguide/using_awslogs.html){:target="_blank" rel="noopener" class="_"} for details on available log driver options.
-
+### Cleaup the cloud formation template
+```console
+aws --region eu-south-1 cloudformation delete-stack \
+--stack-name odm-ecs
+```
 ## Useful links
    * Docker documentation : https://docs.docker.com/cloud/ecs-integration/
    *  If you have trouble to delete your stack read this documentation
