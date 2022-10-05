@@ -1,0 +1,30 @@
+
+    - DockerLabels:
+        metric: FREE
+        productId: IBM License Usage Logger
+        productName: IBM License Usage Logger for Fargate
+      Environment:
+        - Name: AWS_S3_BUCKET_NAME
+          Value: ibm-license-service-675801125365
+        - Name: AWS_S3_HTTPS_ENABLED
+          Value: "true"
+      Essential: true
+      HealthCheck:
+        Command:
+          - CMD-SHELL
+          - ./check-health.sh || exit 1
+        Interval: 30
+        Retries: 3
+        StartPeriod: 50
+      Image: quay.io/opencloudio/ibm-license-usage-logger-for-fargate:latest@sha256:a6ef473d00b36ce263835edf3881de5f86a07d304f1f8df71b5ff2d0ae4ae3a8
+      LinuxParameters: {}
+      LogConfiguration:
+        LogDriver: awslogs
+        Options:
+          awslogs-group:
+            Ref: LogGroup
+          awslogs-region:
+            Ref: AWS::Region
+          awslogs-stream-prefix: ecs
+      MemoryReservation: 512
+      Name: ibm-licenseusage

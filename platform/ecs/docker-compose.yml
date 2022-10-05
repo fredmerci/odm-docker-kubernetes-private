@@ -1,40 +1,31 @@
+version: '3'
 services:
-  dbserver:
-    image: cp.icr.io/cp/cp4a/odm/dbserver:8.11.0.1-amd64
-    x-aws-pull_credentials: "${ICRPULLSECRET}" 
-    user: "26:26"
-    ports:
-    - 5432:5432
-    environment:
-      - POSTGRESQL_USER=odmusr
-      - POSTGRESQL_PASSWORD=odmpwd
-      - POSTGRESQL_DB=odmdb
-      - SAMPLE=true
-      # Should be removed for postgres UBI RHEL Based image.
-#      - PGUSER=odmusr
-      - PGDATA=/var/lib/postgresql/data
-#      - SAMPLE=true
-# Uncomment this line to persist your data. Note that on OSX you need to share this
-# current directory in the Preference menu -> File Sharing menu.
-#    volumes:
-#      - ./pgdata:/pgdata
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   odm-decisionserverconsole:
     image: cp.icr.io/cp/cp4a/odm/odm-decisionserverconsole:8.11.0.1-amd64
-    depends_on:
-      dbserver:
-        condition: service_healthy
+    restart: always
     ports:
     - 9853
     environment:
       - USERS_PASSWORD=odmAdmin
       - HTTPS_PORT=9853
+      - DB_TYPE=postgres
+      - DB_USER=${DBUSER}
+      - DB_PASSWORD=${DBPASSWORD}
+      - DB_NAME=${DBNAME}
+      - DB_SERVER_NAME=${DBSERVERNAME}
+    labels:
+    #TODO To Change
+      - productName=IBM Operational Decision Manager
+      - productId=e32af5770e06427faae142993c691048
+      - productVersion=8.11.0
+      - metric=free
+      - productChargedContainers=decisionserverconsole
     x-aws-pull_credentials:  "${ICRPULLSECRET}" 
+    logging:
+      driver: "awslogs"
+    x-aws-policies:
+    - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
     deploy:
       resources:
         limits:
@@ -43,6 +34,7 @@ services:
         reservations:
           cpus: '0.5'
           memory: 512M
+
     healthcheck:
       test: ["CMD", "curl", "-k", "-f", "https://localhost:9853/res/login.jsf"]
       interval: 30s
@@ -52,17 +44,32 @@ services:
 
   odm-decisionrunner:
     image: cp.icr.io/cp/cp4a/odm/odm-decisionrunner:8.11.0.1-amd64
+    restart: always
+    labels:
+      - productName=IBM Operational Decision Manager - Non Prod
+      - productId=e32af5770e06427faae142993c691048
+      - productVersion=8.11.0
+      - metric=PROCESSOR_VALUE_UNIT
+      - productChargedContainers=decisionrunner
     depends_on:
-      dbserver:
-        condition: service_healthy
       odm-decisionserverconsole:
-        condition: service_healthy
+        condition: service_healthy    
     environment:
       - HTTPS_PORT=9753
+      - DB_TYPE=postgres
+      - DB_USER=${DBUSER}
+      - DB_PASSWORD=${DBPASSWORD}
+      - DB_NAME=${DBNAME}
+      - DB_SERVER_NAME=${DBSERVERNAME}
     x-aws-pull_credentials: "${ICRPULLSECRET}" 
+    logging:
+      driver: "awslogs"
+    x-aws-policies:
+    - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
     ports:
     - 9753
     deploy:
+
       resources:
         limits:
           cpus: '1'
@@ -77,32 +84,41 @@ services:
       retries: 5
       start_period: 50s
 
-
   odm-decisionserverruntime:
     image: cp.icr.io/cp/cp4a/odm/odm-decisionserverruntime:8.11.0.1-amd64
+    restart: always
     environment:
       - DECISIONSERVERCONSOLE_NAME=odm-decisionserverconsole
       - HTTPS_PORT=9953
+      - DB_TYPE=postgres
+      - DB_USER=${DBUSER}
+      - DB_PASSWORD=${DBPASSWORD}
+      - DB_NAME=${DBNAME}
+      - DB_SERVER_NAME=${DBSERVERNAME}
     x-aws-pull_credentials: "${ICRPULLSECRET}" 
+    logging:
+      driver: "awslogs"
+    x-aws-policies:
+    - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
     depends_on:
-      dbserver:
-        condition: service_healthy
       odm-decisionserverconsole:
         condition: service_healthy
     ports:
     - 9953
+    labels:
+      - productName=IBM Operational Decision Manager
+      - productId=b1a07d4dc0364452aa6206bb6584061d
+      - productVersion=8.11.0
+      - metric=PROCESSOR_VALUE_UNIT
+      - productChargedContainers=decisionserverruntime
     deploy:
       resources:
         limits:
           cpus: '1'
-          memory: 512M
+          memory: 1G
         reservations:
-          cpus: '0.5'
-          memory: 512M
-    secrets:
-      - source: mycert
-        target: /config/security/trusted-cert-volume/mycompany.crt
-        mode: 0444
+          cpus: '1'
+          memory: 1G
     healthcheck:
       test: ["CMD", "curl", "-k", "-f", "https://localhost:9953/DecisionService"]
       interval: 30s
@@ -112,24 +128,37 @@ services:
 
   odm-decisioncenter:
       image: cp.icr.io/cp/cp4a/odm/odm-decisioncenter:8.11.0.1-amd64
-      depends_on:
-        dbserver:
-          condition: service_healthy
+      restart: always
       environment:
       - DECISIONSERVERCONSOLE_PORT=9853
       - DECISIONRUNNER_PORT=9753
       - HTTPS_PORT=9653
       - DECISION_MODEL_DISABLED=true
+      - DB_TYPE=postgres
+      - DB_USER=${DBUSER}
+      - DB_PASSWORD=${DBPASSWORD}
+      - DB_NAME=${DBNAME}
+      - DB_SERVER_NAME=${DBSERVERNAME}
       x-aws-pull_credentials: "${ICRPULLSECRET}" 
+      logging:
+        driver: "awslogs"
+      x-aws-policies:
+      - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
       ports:
       - 9653
+      labels:
+        - productName=IBM Operational Decision Manager
+        - productId=b1a07d4dc0364452aa6206bb6584061d
+        - productVersion=8.11.0
+        - metric=PROCESSOR_VALUE_UNIT
+        - productChargedContainers=decisioncenter
       deploy:
         resources:
           limits:
-            cpus: '1'
+            cpus: '2'
             memory: 4G
           reservations:
-            cpus: '0.5'
+            cpus: '1'
             memory: 1G
       healthcheck:
         test: ["CMD", "curl", "-k", "-f", "https://localhost:9653/decisioncenter/healthCheck?dontCheckDecisionModel=true"]
@@ -137,7 +166,4 @@ services:
         timeout: 5s
         retries: 5
         start_period: 50s
-  
-secrets:
-  mycert:
-    file: ./mycompany.crt
+

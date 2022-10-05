@@ -1,5 +1,5 @@
 
-![ODM-ECS drawio](https://user-images.githubusercontent.com/24404215/192227556-67ac2325-61a5-40eb-8bbf-c17b8eff2f1d.png)
+![ODM-ECS drawio](../../images/ecs/ODM-ECS.png)
 
 
 # 1. Pre-requisite 
@@ -304,5 +304,5 @@ https://aws.amazon.com/fr/premiumsupport/knowledge-center/cloudformation-stack-s
 - [ x ] Bench 
 - [ ] Document customization
 - [ ] Document Replace DBServer by an RDS Database
-- [ ] Add an architecture diagram 
+- [x] Add an architecture diagram
 - [ ] Give a customization with an OIDC Provider
