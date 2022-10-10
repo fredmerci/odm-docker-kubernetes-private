@@ -153,6 +153,7 @@ services:
         - metric=PROCESSOR_VALUE_UNIT
         - productChargedContainers=decisioncenter
       deploy:
+        replicas: 1
         resources:
           limits:
             cpus: '2'
@@ -166,4 +167,12 @@ services:
         timeout: 5s
         retries: 5
         start_period: 50s
-
+x-aws-cloudformation:
+  Resources:
+    OdmdecisioncenterTCP9653TargetGroup:
+      Properties:
+        TargetGroupAttributes:
+          - Key: stickiness.enabled
+            Value: true
+          - Key: deregistration_delay.timeout_seconds
+            Value: 30
