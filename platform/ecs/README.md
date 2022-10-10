@@ -211,14 +211,10 @@ docker context use myecscontext
 > Note if you want to restore your initial docker environment `docker context use default`
 
 ### Run the ODM on ECS topology
+#### Deploy ODM with Docker compose
 ```console
-# Generate Cloud formation template
-docker compose convert > deploy.yml
-# Add License Metering side car
-# Deploy the topology
-aws --region eu-south-1 cloudformation deploy --capabilities CAPABILITY_IAM \
---stack-name odm-ecs \
---template-file ./deploy.yml
+# Deploy 
+docker compose up
 ```
 
 
@@ -237,6 +233,27 @@ task/ecs/cf749aa0d2a74966a22e377e3685daef   ""                  dbserver        
 task/ecs/ebc1606437034c65a479f7dae101618a   ""                  odm-decisioncenter          Running             ecs-LoadBal-QMPILXMWO6F3-1d82c8ee22304c71.elb.eu-west-3.amazonaws.com:9653:9653->9653/tcp
 ```
 When the status is Running you can access the containers by using the `Ports` urls.
+
+#### Enable IBM License Manager for the deployed ODM containers
+
+Edit the CloudFormation-IBM-License.yml file and change the S3 bucket.
+
+``console
+# Generate Cloud formation template
+docker compose convert > deploy.yml
+# Add License Metering side car
+yq eval-all ' select(fi == 0) as $dockerlabels | select(fi == 1) | \
+.Resources.OdmdecisioncenterTaskDefinition.Properties.ContainerDefinitions += $dockerlabels | \
+.Resources.OdmdecisionrunnerTaskDefinition.Properties.ContainerDefinitions += $dockerlabels | \
+.Resources.OdmdecisionserverconsoleTaskDefinition.Properties.ContainerDefinitions += $dockerlabels | \
+.Resources.OdmdecisionserverruntimeTaskDefinition.Properties.ContainerDefinitions += $dockerlabels ' \
+CloudFormation-IBM-License.yml deploy-odm.yml > deploy-odm-metering.yml
+# Update the task definition 
+aws --region eu-south-1 cloudformation deploy --capabilities CAPABILITY_IAM \
+--stack-name odm-ecs \
+--template-file ./deploy-odm-metering.yml
+```
+
 
 ### View application logs
 
@@ -269,7 +286,7 @@ Compose file `logging.driver_opts` elements. See [AWS documentation](https://doc
 ### Cleaup the cloud formation template
 ```console
 aws --region eu-south-1 cloudformation delete-stack \
---stack-name odm-ecs
+--stack-name ecs
 ```
 ## Useful links
    * Docker documentation : https://docs.docker.com/cloud/ecs-integration/
