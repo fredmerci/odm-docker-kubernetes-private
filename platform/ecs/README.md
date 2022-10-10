@@ -215,10 +215,11 @@ docker context use myecscontext
 # Generate Cloud formation template
 docker compose convert > deploy.yml
 # Add License Metering side car
+yq eval-all ' select(fi == 0) as $dockerlabels | select(fi == 1) | .Resources | .OdmdecisioncenterTaskDefinition.Properties.ContainerDefinitions += $dockerlabels | .OdmdecisionrunnerTaskDefinition.Properties.ContainerDefinitions += $dockerlabels | .OdmdecisionserverconsoleTaskDefinition.Properties.ContainerDefinitions += $dockerlabels | .OdmdecisionserverruntimeTaskDefinition.Properties.ContainerDefinitions += $dockerlabels ' CloudFormation-IBM-License.yml deploy.yml > deploy-odm-metering
 # Deploy the topology
 aws --region eu-south-1 cloudformation deploy --capabilities CAPABILITY_IAM \
 --stack-name odm-ecs \
---template-file ./deploy.yml
+--template-file ./deploy-odm-metering.yml
 ```
 
 
