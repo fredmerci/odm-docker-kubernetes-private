@@ -39,6 +39,25 @@ myecscontext        ecs                 credentials read from environment
 default *           moby                Current DOCKER_HOST based configuration   unix:///var/run/docker.sock                         swarm
 ```
 
+## Create RDS Database
+```
+aws rds create-db-instance \
+  --db-instance-identifier "odm-rds" \
+  --db-name "odmdb" \
+  --engine 'postgres' \
+  --engine-version '13' \
+  --auto-minor-version-upgrade \
+  --allocated-storage 50 \
+  --max-allocated-storage 100 \
+  --db-instance-class 'db.t3.large' \
+  --master-username "odmusername" \
+  --master-user-password "odmpassword" \
+  --port "5432" \
+  --publicly-accessible \
+  --storage-encrypted \
+  --tags Key=project,Value=odm
+```
+
 ## Create Secret for the Entitled registry
 To get access to the ODM material, you must have an IBM entitlement registry key to pull the images from the IBM Entitled registry. 
 It's what will be used in the next step of this tutorial.
@@ -70,135 +89,29 @@ Once created, you can use this ARN in your Compose file using `x-aws-pull_creden
 
 ### c. Create a .env file
 With the ARN generated previously create a .env file the ICRPULLSECRET variable.
+In your working dir, create a .env file with this content.
+
 ```console
-echo "ICRPULLSECRET=arn:aws:secretsmanager:eu-west-3:675801125365:secret:ICRAccessToken-XXXX" > .env
+ICRPULLSECRET="ARN-SecretName"
+DBSERVERNAME=<RDS-DATABASEURL>
+DBNAME=odmdb
+DBUSER=odmusername
+DBPASSWORD=odmpassword
+BUCKET_NAME=S3-BUCKETNAME
 ```
 
-## Create RDS Database
-```
-aws rds create-db-instance \
-  --db-instance-identifier "odm-rds" \
-  --db-name "odmdb" \
-  --engine 'postgres' \
-  --engine-version '13' \
-  --auto-minor-version-upgrade \
-  --allocated-storage 50 \
-  --max-allocated-storage 100 \
-  --db-instance-class 'db.t3.large' \
-  --master-username "odmusername" \
-  --master-user-password "odmpassword" \
-  --port "5432" \
-  --publicly-accessible \
-  --storage-encrypted \
-  --tags Key=project,Value=odm
-```
+Where : 
+* DS-DATABASEURL : This is the Database Name URL created in the step 'Create RDS Database'
+* ARN-SecretName : Previously created
+* S3-BUCKETNAME: Don't know if it's used.
+
+
 
 ## Run ODM container in ECS
 
 ### Create docker-compose file
-```yaml
-services:
-  dbserver:
-    image: cp.icr.io/cp/cp4a/odm/dbserver:8.11.0.1-amd64
-    x-aws-pull_credentials: "${ICRPULLSECRET}" 
-    user: "26:26"
-    ports:
-    - 5432:5432
-    environment:
-      - POSTGRESQL_USER=odmusr
-      - POSTGRESQL_PASSWORD=odmpwd
-      - POSTGRESQL_DB=odmdb
-      - SAMPLE=true
-      # Should be removed for postgres UBI RHEL Based image.
-#      - PGUSER=odmusr
-      - PGDATA=/var/lib/postgresql/data
-#      - SAMPLE=true
-# Uncomment this line to persist your data. Note that on OSX you need to share this
-# current directory in the Preference menu -> File Sharing menu.
-#    volumes:
-#      - ./pgdata:/pgdata
 
-
-  odm-decisionserverconsole:
-    image: cp.icr.io/cp/cp4a/odm/odm-decisionserverconsole:8.11.0.1-amd64
-    depends_on:
-    - dbserver
-    ports:
-    - 9853
-    environment:
-      - USERS_PASSWORD=odmAdmin
-      - HTTPS_PORT=9853
-    x-aws-pull_credentials:  "${ICRPULLSECRET}" 
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-
-
-  odm-decisionrunner:
-    image: cp.icr.io/cp/cp4a/odm/odm-decisionrunner:8.11.0.1-amd64
-    depends_on:
-    - dbserver
-    - odm-decisionserverconsole
-    environment:
-      - HTTPS_PORT=9753
-    x-aws-pull_credentials: "${ICRPULLSECRET}" 
-    ports:
-    - 9753
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-
-  odm-decisionserverruntime:
-    image: cp.icr.io/cp/cp4a/odm/odm-decisionserverruntime:8.11.0.1-amd64
-    environment:
-      - DECISIONSERVERCONSOLE_NAME=odm-decisionserverconsole
-      - HTTPS_PORT=9953
-    x-aws-pull_credentials: "${ICRPULLSECRET}" 
-    depends_on:
-    - dbserver
-    - odm-decisionserverconsole
-    ports:
-    - 9953
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-
-  odm-decisioncenter:
-    image: cp.icr.io/cp/cp4a/odm/odm-decisioncenter:8.11.0.1-amd64
-    depends_on:
-    - dbserver
-    environment:
-    - DECISIONSERVERCONSOLE_PORT=9853
-    - DECISIONRUNNER_PORT=9753
-    - HTTPS_PORT=9653
-    x-aws-pull_credentials: "${ICRPULLSECRET}" 
-    ports:
-    - 9653
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 4G
-        reservations:
-          cpus: '0.5'
-          memory: 1G
-```
-Save this content in a `docker-compose.yaml` file.
+Download the [docker-compose.yaml](docker-compose.yaml) and save this content in your working dir.
 
 ### Switch your docker environment to the ECS Context
 - Ensure you are using your ECS context. You can do this either by specifying
@@ -216,13 +129,10 @@ docker context use myecscontext
 # Deploy 
 docker compose up
 ```
-
-
-
 After a couple of minutes your ODM containers topology should be avalaible.
 
 You can check your container is running by using 
-```
+```console
 docker compose ps
 
 NAME                                        COMMAND             SERVICE                     STATUS              PORTS
@@ -236,9 +146,9 @@ When the status is Running you can access the containers by using the `Ports` ur
 
 #### Enable IBM License Manager for the deployed ODM containers
 
-Edit the CloudFormation-IBM-License.yml file and change the S3 bucket.
+Edit the [CloudFormation-IBM-License.yml](CloudFormation-IBM-License.yml) file and change the S3 bucket.
 
-``console
+```console
 # Generate Cloud formation template
 docker compose convert > deploy.yml
 # Add License Metering side car
