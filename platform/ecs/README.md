@@ -39,6 +39,25 @@ myecscontext        ecs                 credentials read from environment
 default *           moby                Current DOCKER_HOST based configuration   unix:///var/run/docker.sock                         swarm
 ```
 
+## Create RDS Database
+```
+aws rds create-db-instance \
+  --db-instance-identifier "odm-rds" \
+  --db-name "odmdb" \
+  --engine 'postgres' \
+  --engine-version '13' \
+  --auto-minor-version-upgrade \
+  --allocated-storage 50 \
+  --max-allocated-storage 100 \
+  --db-instance-class 'db.t3.large' \
+  --master-username "odmusername" \
+  --master-user-password "odmpassword" \
+  --port "5432" \
+  --publicly-accessible \
+  --storage-encrypted \
+  --tags Key=project,Value=odm
+```
+
 ## Create Secret for the Entitled registry
 To get access to the ODM material, you must have an IBM entitlement registry key to pull the images from the IBM Entitled registry. 
 It's what will be used in the next step of this tutorial.
@@ -70,28 +89,23 @@ Once created, you can use this ARN in your Compose file using `x-aws-pull_creden
 
 ### c. Create a .env file
 With the ARN generated previously create a .env file the ICRPULLSECRET variable.
+In your working dir, create a .env file with this content.
+
 ```console
-echo "ICRPULLSECRET=arn:aws:secretsmanager:eu-west-3:675801125365:secret:ICRAccessToken-XXXX" > .env
+ICRPULLSECRET="ARN-SecretName"
+DBSERVERNAME=<RDS-DATABASEURL>
+DBNAME=odmdb
+DBUSER=odmusername
+DBPASSWORD=odmpassword
+BUCKET_NAME=S3-BUCKETNAME
 ```
 
-## Create RDS Database
-```
-aws rds create-db-instance \
-  --db-instance-identifier "odm-rds" \
-  --db-name "odmdb" \
-  --engine 'postgres' \
-  --engine-version '13' \
-  --auto-minor-version-upgrade \
-  --allocated-storage 50 \
-  --max-allocated-storage 100 \
-  --db-instance-class 'db.t3.large' \
-  --master-username "odmusername" \
-  --master-user-password "odmpassword" \
-  --port "5432" \
-  --publicly-accessible \
-  --storage-encrypted \
-  --tags Key=project,Value=odm
-```
+Where : 
+* <DS-DATABASEURL : This is the Database Name URL created in the step 'Create RDS Database'
+* ARN-SecretName : Previously created
+* S3-BUCKETNAME: Don't know if it's used.
+
+
 
 ## Run ODM container in ECS
 
