@@ -101,7 +101,7 @@ BUCKET_NAME=S3-BUCKETNAME
 ```
 
 Where : 
-* <DS-DATABASEURL : This is the Database Name URL created in the step 'Create RDS Database'
+* DS-DATABASEURL : This is the Database Name URL created in the step 'Create RDS Database'
 * ARN-SecretName : Previously created
 * S3-BUCKETNAME: Don't know if it's used.
 
@@ -111,7 +111,7 @@ Where :
 
 ### Create docker-compose file
 
-Download the `docker-compose.yaml` and save this content in your working dir.
+Download the [docker-compose.yaml](docker-compose.yaml) and save this content in your working dir.
 
 ### Switch your docker environment to the ECS Context
 - Ensure you are using your ECS context. You can do this either by specifying
@@ -129,13 +129,10 @@ docker context use myecscontext
 # Deploy 
 docker compose up
 ```
-
-
-
 After a couple of minutes your ODM containers topology should be avalaible.
 
 You can check your container is running by using 
-```
+```console
 docker compose ps
 
 NAME                                        COMMAND             SERVICE                     STATUS              PORTS
@@ -149,9 +146,9 @@ When the status is Running you can access the containers by using the `Ports` ur
 
 #### Enable IBM License Manager for the deployed ODM containers
 
-Edit the CloudFormation-IBM-License.yml file and change the S3 bucket.
+Edit the [CloudFormation-IBM-License.yml](CloudFormation-IBM-License.yml) file and change the S3 bucket.
 
-``console
+```console
 # Generate Cloud formation template
 docker compose convert > deploy.yml
 # Add License Metering side car
