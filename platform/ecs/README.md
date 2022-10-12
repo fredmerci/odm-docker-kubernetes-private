@@ -204,8 +204,10 @@ aws --region eu-south-1 cloudformation delete-stack \
 https://aws.amazon.com/fr/premiumsupport/knowledge-center/cloudformation-stack-stuck-progress/
 
 ## TODO
-- [ x ] Bench 
+- [x] Bench 
 - [ ] Document customization
-- [ ] Document Replace DBServer by an RDS Database
+- [x] Document Replace DBServer by an RDS Database
 - [x] Add an architecture diagram
+- [x] Investigate IBM License Manager
+- [x] Test and implement Session Affinity  
 - [ ] Give a customization with an OIDC Provider
