@@ -17,9 +17,9 @@ services:
     labels:
     #TODO To Change
       - productName=IBM Operational Decision Manager
-      - productId=e32af5770e06427faae142993c691048
+      - productID=e32af5770e06427faae142993c691048
       - productVersion=8.11.0
-      - metric=free
+      - productMetric=free
       - productChargedContainers=decisionserverconsole
     x-aws-pull_credentials:  "${ICRPULLSECRET}" 
     logging:
@@ -47,9 +47,9 @@ services:
     restart: always
     labels:
       - productName=IBM Operational Decision Manager - Non Prod
-      - productId=e32af5770e06427faae142993c691048
+      - productID=e32af5770e06427faae142993c691048
       - productVersion=8.11.0
-      - metric=PROCESSOR_VALUE_UNIT
+      - productMetric=PROCESSOR_VALUE_UNIT
       - productChargedContainers=decisionrunner
     depends_on:
       odm-decisionserverconsole:
@@ -107,9 +107,9 @@ services:
     - 9953
     labels:
       - productName=IBM Operational Decision Manager
-      - productId=b1a07d4dc0364452aa6206bb6584061d
+      - productID=b1a07d4dc0364452aa6206bb6584061d
       - productVersion=8.11.0
-      - metric=PROCESSOR_VALUE_UNIT
+      - productMetric=PROCESSOR_VALUE_UNIT
       - productChargedContainers=decisionserverruntime
     deploy:
       resources:
@@ -148,9 +148,9 @@ services:
       - 9653
       labels:
         - productName=IBM Operational Decision Manager
-        - productId=b1a07d4dc0364452aa6206bb6584061d
+        - productID=b1a07d4dc0364452aa6206bb6584061d
         - productVersion=8.11.0
-        - metric=PROCESSOR_VALUE_UNIT
+        - productMetric=PROCESSOR_VALUE_UNIT
         - productChargedContainers=decisioncenter
       deploy:
         replicas: 1

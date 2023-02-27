@@ -152,8 +152,14 @@ task/ecs/ebc1606437034c65a479f7dae101618a   ""                  odm-decisioncent
 ```
 When the status is Running you can access the containers by using the `Ports` urls.
 
-#### Enable IBM License Manager for the deployed ODM containers
+#### Setup a S3 Bucket for the metering
+Follow this documentation :  https://www.ibm.com/docs/en/cpfs?topic=platforms-tracking-license-usage-aws-ecs-fargate
 
+#### Modify the metering information
+
+Edit the docker-compose.yml and change the metering information.
+
+#### Enable IBM License Manager for the deployed ODM containers
 Edit the [CloudFormation-IBM-License.yml](CloudFormation-IBM-License.yml) file and change the S3 bucket.
 
 ```console
@@ -172,6 +178,7 @@ aws --region eu-south-1 cloudformation deploy --capabilities CAPABILITY_IAM \
 --template-file ./deploy-odm-metering.yml
 ```
 
+More informations in the Liberty [documentation](https://www.ibm.com/docs/en/was-liberty/base?topic=container-tracking-liberty-license-usage-aws-ecs-fargate).
 
 ### View application logs
 
