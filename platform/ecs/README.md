@@ -39,6 +39,14 @@ myecscontext        ecs                 credentials read from environment
 default *           moby                Current DOCKER_HOST based configuration   unix:///var/run/docker.sock                         swarm
 ```
 
+### Switch your docker environment to the ECS Context
+- Ensure you are using your ECS context. You can do this either by specifying
+the `--context myecscontext` flag with your command, or by setting the
+current context using the command 
+```console
+docker context use myecscontext
+```
+
 ## Create RDS Database
 ```
 aws rds create-db-instance \
@@ -73,7 +81,7 @@ Create a `token.json` file with that format.
 ```json
 {
     "username":"cp",
-    "password":"<YOUR_ENTITLED_API_KEY"
+    "password":"<YOUR_ENTITLED_API_KEY>"
 }
 ```
 
@@ -87,7 +95,14 @@ arn:aws:secretsmanager:eu-west-3:675801125365:secret:ICRAccessToken-XXXX
 ```
 Once created, you can use this ARN in your Compose file using `x-aws-pull_credentials` custom extension with the Docker image URI for your service.
 
-### c. Create a .env file
+### c. Docker login to the Entitled registry
+
+```console
+$ docker login cp.icr.io -u cp -p "<YOUR_ENTITLED_API_KEY>"
+Login Succeeded
+```
+
+### d. Create a .env file
 With the ARN generated previously create a .env file the ICRPULLSECRET variable.
 In your working dir, create a .env file with this content.
 
@@ -113,13 +128,6 @@ Where :
 
 Download the [docker-compose.yaml](docker-compose.yaml) and save this content in your working dir.
 
-### Switch your docker environment to the ECS Context
-- Ensure you are using your ECS context. You can do this either by specifying
-the `--context myecscontext` flag with your command, or by setting the
-current context using the command 
-```console
-docker context use myecscontext
-```
 
 > Note if you want to restore your initial docker environment `docker context use default`
 
@@ -150,7 +158,7 @@ Edit the [CloudFormation-IBM-License.yml](CloudFormation-IBM-License.yml) file a
 
 ```console
 # Generate Cloud formation template
-docker compose convert > deploy.yml
+docker compose convert > deploy-odm.yml
 # Add License Metering side car
 yq eval-all ' select(fi == 0) as $dockerlabels | select(fi == 1) | \
 .Resources.OdmdecisioncenterTaskDefinition.Properties.ContainerDefinitions += $dockerlabels | \
