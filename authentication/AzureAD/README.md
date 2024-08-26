@@ -112,7 +112,7 @@ After activating your account by email, you should have access to your Microsoft
         * User principal name: *myodmuser*@YOURDOMAIN
         * Mail nickname / Derive from user principal name: checked
         * Display name: `<YourFirstName> <YourLastName>`
-        * Password: `My2ODMPassword?`
+        * Password: `My2ODMPassword?modidifed`
         * Account enabled: checked
 
       * In Assignments fill in:
